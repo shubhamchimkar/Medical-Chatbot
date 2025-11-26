@@ -4,7 +4,7 @@ from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI
 from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage
 from src.prompt import *
@@ -42,7 +42,7 @@ chatModel = ChatOpenAI(model="gpt-4o")
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
-        ("placeholder", "{chat_history}"),
+        MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
     ]
 )
