@@ -16,8 +16,10 @@ import os
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")  # replace in production
 app.config.update(
-    SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=False  # set True when enforcing HTTPS-only cookies
+    # On Hugging Face Spaces, the app is served over HTTPS and may be embedded,
+    # so use SameSite=None and Secure=True to allow cookies in that context.
+    SESSION_COOKIE_SAMESITE='None',
+    SESSION_COOKIE_SECURE=True
 )
 app.permanent_session_lifetime = timedelta(days=7)
 
