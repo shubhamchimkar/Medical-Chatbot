@@ -1,3 +1,12 @@
+---
+title: medi-bot
+emoji: "🩺"
+colorFrom: indigo
+colorTo: teal
+sdk: docker
+pinned: false
+---
+
 # Medical-Chatbot
 
 
