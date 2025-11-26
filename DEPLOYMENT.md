@@ -1,6 +1,7 @@
 # Deployment Guide
 
-This application can be easily deployed for free on platforms like **Render** or **Hugging Face Spaces**.
+**RECOMMENDED: Use Option 2 (Hugging Face Spaces)**. 
+Render's free tier (512MB RAM) is often insufficient for this application's AI models, causing "Out of Memory" errors. Hugging Face provides 16GB RAM for free.
 
 ## Prerequisites
 
@@ -8,7 +9,7 @@ You will need your API keys ready:
 - `PINECONE_API_KEY`
 - `OPENAI_API_KEY`
 
-## Option 1: Render (Recommended for Web Apps)
+## Option 1: Render (May run out of memory)
 
 Render is very easy to use and connects directly to your GitHub repository.
 
@@ -57,6 +58,6 @@ Before deploying, ensure your Pinecone index is populated with data. The applica
 
 ## Note on Port
 
-The application is configured to listen on the port specified by the `PORT` environment variable, defaulting to `8080`.
-- **Render** automatically sets the `PORT` variable.
-- **Hugging Face Spaces** expects the app to listen on port `7860`. You may need to set a `PORT` variable to `7860` in the Dockerfile or Space settings if it doesn't work automatically, but the current setup should be compatible with most platforms.
+The application is configured to listen on the port specified by the `PORT` environment variable.
+- **Hugging Face Spaces** defaults to port `7860`. The Dockerfile has been updated to set this as the default.
+- **Render** automatically sets the `PORT` variable, so it will still work if you choose to try it (though memory may be an issue).

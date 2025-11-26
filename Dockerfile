@@ -6,6 +6,8 @@ COPY . /app
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-EXPOSE 8080
+# Hugging Face Spaces defaults to port 7860
+ENV PORT=7860
+EXPOSE 7860
 
 CMD ["python3", "app.py"]
