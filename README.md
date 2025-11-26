@@ -147,23 +147,11 @@ Notes:
 - 500 errors → check env var names & ingestion order
 
 ## 🖼 UI Preview
-Add a screenshot of the running chat UI here:  
-`assets/ui-preview.png`
-```md
-![Chat UI](assets/ui-preview.png)
-```
-Replace with your own once deployed.
-Actual screenshot example:
+Single current interface screenshot:
 
-![Medi-Bot Chat Screenshot](assets/ui-preview.png)
+![Medi-Bot Interface](assets/ss.png)
 
-<sub>If the image does not display, ensure the file is saved at `assets/ui-preview.png` in the repo. Commit with: `git add assets/ui-preview.png && git commit -m "Add UI screenshot" && git push origin main`.</sub>
-
-Additional example (symptoms query):
-
-![Brain Tumor Symptoms Chat](assets/ui-symptoms.png)
-
-<sub>Add second image file at `assets/ui-symptoms.png` (the screenshot you shared) and commit it similarly.</sub>
+<sub>If the image does not display, ensure it is committed: `git add assets/ss.png && git commit -m "Add UI screenshot" && git push origin main`.</sub>
 
 ## 📜 License
 MIT
