@@ -33,7 +33,11 @@ jobs:
             --exclude "*.pt" \
             --exclude "*.bin" \
             --exclude "*.zip" \
-            --exclude "*.gz"
+            --exclude "*.gz" \
+            --exclude "assets/" \
+            --exclude "*.png" \
+            --exclude "*.jpg" \
+            --exclude "*.jpeg"
           cd /tmp/hf-deploy
           # show what will be pushed
           echo "Contents to push:" && ls -la

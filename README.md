@@ -149,12 +149,27 @@ Notes:
 ## 🖼 UI Preview
 Single current interface screenshot:
 
-![Medi-Bot Interface](assets/ss.png)
+![Medi-Bot Interface](https://raw.githubusercontent.com/shubhamchimkar/Medical-Chatbot/main/assets/ss.png)
 
-<sub>If the image does not display, ensure it is committed: `git add assets/ss.png && git commit -m "Add UI screenshot" && git push origin main`.</sub>
+<sub>If the image does not display, verify the file exists on GitHub and the raw URL is accessible.</sub>
 
 ## 📜 License
 MIT
+
+## 🔌 API Endpoints
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/` | GET | Chat UI page |
+| `/get` | POST | Submit a user message (form field `msg`) |
+| `/reset` | GET/POST | Clears server-side session chat history |
+| `/health` | GET | Basic health + status (Pinecone availability, history length) |
+
+Use `curl` examples:
+```bash
+curl -X POST -d 'msg=What is anemia?' http://localhost:8080/get
+curl http://localhost:8080/health
+curl -X POST http://localhost:8080/reset
+```
 ```bash
 # run the following command to store embeddings to pinecone
 python store_index.py

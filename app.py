@@ -7,6 +7,7 @@ from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, AIMessage
+import logging
 from src.prompt import *
 import os
 
@@ -17,26 +18,33 @@ app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")  # replace
 
 load_dotenv()
 
-PINECONE_API_KEY=os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY=os.environ.get('OPENAI_API_KEY')
+REQUIRED_ENV = ["PINECONE_API_KEY", "OPENAI_API_KEY"]
+missing = [k for k in REQUIRED_ENV if not os.environ.get(k)]
+if missing:
+    logging.warning(f"Missing environment variables: {missing}. The app will attempt to run but functionality may be limited.")
 
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY', '')
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY', '')
+
+# Re-set to ensure downstream libraries see them
+if PINECONE_API_KEY:
+    os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
+if OPENAI_API_KEY:
+    os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
 embeddings = download_hugging_face_embeddings()
 
-index_name = "medical-chatbot" 
-# Embed each chunk and upsert the embeddings into your Pinecone index.
-docsearch = PineconeVectorStore.from_existing_index(
-    index_name=index_name,
-    embedding=embeddings
-)
-
-
-
-
-retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
+index_name = "medical-chatbot"
+retriever = None
+try:
+    docsearch = PineconeVectorStore.from_existing_index(
+        index_name=index_name,
+        embedding=embeddings
+    )
+    retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
+except Exception as e:
+    logging.warning(f"Pinecone index fallback engaged: {e}. Using direct LLM without retrieval.")
 
 chatModel = ChatOpenAI(model="gpt-4o")
 prompt = ChatPromptTemplate.from_messages(
@@ -48,7 +56,7 @@ prompt = ChatPromptTemplate.from_messages(
 )
 
 question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain)
+rag_chain = create_retrieval_chain(retriever, question_answer_chain) if retriever else None
 
 
 
@@ -62,6 +70,18 @@ def index():
 def chat():
     msg = request.form["msg"].strip()
     history = session.get("history", [])
+    # Special intent: report first prompt of current session
+    normalized = msg.lower().strip().replace("?", "")
+    if normalized in {"what was my first prompt", "what is my first prompt", "what was my first question", "what is my first question"}:
+        first_user = next((content for role, content in history if role == "user"), None)
+        if first_user:
+            answer = f"Your first prompt was \"{first_user}\"."
+        else:
+            answer = "I don't see a previous prompt in this session yet."
+        history.append(("user", msg))
+        history.append(("assistant", answer))
+        session["history"] = history
+        return str(answer)
     # convert last 10 turns into LangChain message objects
     limited = history[-10:]
     lc_messages = []
@@ -70,13 +90,38 @@ def chat():
             lc_messages.append(HumanMessage(content=content))
         elif role == "assistant":
             lc_messages.append(AIMessage(content=content))
-    response = rag_chain.invoke({"input": msg, "chat_history": lc_messages})
-    answer = response.get("answer", "I don't know.")
+    if rag_chain:
+        response = rag_chain.invoke({"input": msg, "chat_history": lc_messages})
+        answer = response.get("answer", "I don't know.")
+    else:
+        # Direct LLM fallback without retrieval context
+        direct_prompt = system_prompt.replace('{context}', '(no retrieval)')
+        # We do not embed history into prompt here; prompt template handles chat_history
+        response = chatModel.invoke([
+            HumanMessage(content=direct_prompt),
+            *lc_messages,
+            HumanMessage(content=msg)
+        ])
+        answer = getattr(response, 'content', "I don't know.")
     # update history
     history.append(("user", msg))
     history.append(("assistant", answer))
     session["history"] = history
     return str(answer)
+
+@app.route("/reset", methods=["POST", "GET"])
+def reset():
+    session.pop("history", None)
+    return jsonify({"status": "reset", "message": "Conversation history cleared."})
+
+@app.route("/health")
+def health():
+    return jsonify({
+        "status": "ok",
+        "pinecone": bool(retriever),
+        "openai_key": bool(OPENAI_API_KEY),
+        "history_length": len(session.get("history", []))
+    })
 
 
 
