@@ -33,30 +33,41 @@ if OPENAI_API_KEY:
     os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 
-embeddings = download_hugging_face_embeddings()
-
-index_name = "medical-chatbot"
+embeddings = None
 retriever = None
-try:
-    docsearch = PineconeVectorStore.from_existing_index(
-        index_name=index_name,
-        embedding=embeddings
-    )
-    retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k":3})
-except Exception as e:
-    logging.warning(f"Pinecone index fallback engaged: {e}. Using direct LLM without retrieval.")
+rag_chain = None
+_pipeline_ready = False
+
+
+def _build_pipeline():
+    global embeddings, retriever, rag_chain, _pipeline_ready
+    if _pipeline_ready:
+        return
+    try:
+        embeddings = download_hugging_face_embeddings()
+        index_name = "medical-chatbot"
+        docsearch = PineconeVectorStore.from_existing_index(
+            index_name=index_name,
+            embedding=embeddings
+        )
+        retriever_local = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
+        prompt_local = ChatPromptTemplate.from_messages(
+            [
+                ("system", system_prompt),
+                MessagesPlaceholder(variable_name="chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+        question_answer_chain_local = create_stuff_documents_chain(chatModel, prompt_local)
+        rag_chain_local = create_retrieval_chain(retriever_local, question_answer_chain_local)
+        retriever = retriever_local
+        rag_chain = rag_chain_local
+        _pipeline_ready = True
+        logging.info("RAG pipeline built successfully.")
+    except Exception as e:
+        logging.warning(f"RAG pipeline build failed: {e}. Falling back to direct LLM.")
 
 chatModel = ChatOpenAI(model="gpt-4o")
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-    ]
-)
-
-question_answer_chain = create_stuff_documents_chain(chatModel, prompt)
-rag_chain = create_retrieval_chain(retriever, question_answer_chain) if retriever else None
 
 
 
@@ -68,6 +79,9 @@ def index():
 
 @app.route("/get", methods=["GET", "POST"])
 def chat():
+    # Ensure pipeline is built lazily to avoid startup timeouts on Spaces
+    if not _pipeline_ready:
+        _build_pipeline()
     msg = request.form["msg"].strip()
     history = session.get("history", [])
     # Special intent: report first prompt of current session
