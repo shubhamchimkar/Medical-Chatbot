@@ -15,6 +15,9 @@ jobs:
           fetch-depth: 0
           lfs: true
       - name: Push to hub
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push --force https://shubhamchimkar:$HF_TOKEN@huggingface.co/spaces/shubhamchimkar/medical-chatbot main
+        uses: nateraw/huggingface-sync-action@v1
+        with:
+          github_repo_id: shubhamchimkar/Medical-Chatbot
+          huggingface_repo_id: Monster10/medical-chatbot
+          repo_type: space
+          token: ${{ secrets.HF_TOKEN }}
