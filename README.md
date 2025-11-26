@@ -2,8 +2,9 @@
 title: medi-bot
 emoji: "🩺"
 colorFrom: indigo
-colorTo: teal
+colorTo: blue
 sdk: docker
+app_file: app.py
 pinned: false
 ---
 
