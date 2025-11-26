@@ -22,7 +22,65 @@ git clonehttps://github.com/entbappy/Build-a-Complete-Medical-Chatbot-with-LLMs-
 ### STEP 01- Create a conda environment after opening the repository
 
 ```bash
-conda create -n medibot python=3.10 -y
+<div align="center">
+
+<img src="assets/banner.svg" width="640" alt="Medi-Bot Banner" />
+
+<p>
+<strong>Medi‑Bot</strong><br/>
+🩺 AI-powered medical Q&A using <a href="https://python.langchain.com">LangChain</a>, <a href="https://www.pinecone.io">Pinecone</a>, and <a href="https://openai.com">OpenAI</a>. Fast retrieval over your own PDF corpus.
+</p>
+
+[![Space](https://img.shields.io/badge/HuggingFace-Spaces-orange?logo=huggingface)](https://huggingface.co/spaces/Monster10/medi-bot)
+[![Flask](https://img.shields.io/badge/Flask-2.0+-black?logo=flask)](https://flask.palletsprojects.com/)
+[![LangChain](https://img.shields.io/badge/LangChain-RAG-blue?logo=python)](https://python.langchain.com/)
+[![Pinecone](https://img.shields.io/badge/Pinecone-VectorStore-0A2540)](https://www.pinecone.io/)
+[![OpenAI](https://img.shields.io/badge/OpenAI-API-412991?logo=openai)](https://platform.openai.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+</div>
+
+---
+
+## ✨ Features
+- 🔍 Retrieval‑augmented generation (RAG) over your medical PDFs
+- 🧠 SentenceTransformers embeddings (`all-MiniLM-L6-v2`)
+- 📦 Pinecone vector store for low-latency similarity search
+- 💬 Flask web interface (`templates/chat.html`)
+- 🚀 GitHub Action → Hugging Face Space Docker deploy
+
+## 🔑 Requirements
+| Item | Description |
+|------|-------------|
+| Python | 3.10+ |
+| OPENAI_API_KEY | OpenAI chat model access |
+| PINECONE_API_KEY | Pinecone index & vector ops |
+
+## 🛠 Local Setup
+```bash
+# clone
+git clone https://github.com/shubhamchimkar/Medical-Chatbot.git
+cd Medical-Chatbot
+
+# create venv
+python -m venv venv
+source venv/bin/activate
+
+# install deps
+pip install -r requirements.txt
+
+# env vars
+cat > .env <<'EOF'
+OPENAI_API_KEY=YOUR_OPENAI_KEY
+PINECONE_API_KEY=YOUR_PINECONE_KEY
+EOF
+
+# (optional) ingest PDFs to Pinecone
+python store_index.py
+
+# run app
+python app.py
+# open http://localhost:8080
 ```
 
 ```bash
@@ -44,6 +102,71 @@ OPENAI_API_KEY = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 ```
 
 
+
+## 📂 Project Structure
+```text
+app.py              # Flask app + RAG chain
+store_index.py      # One-time ingestion of PDFs → Pinecone
+src/
+	helper.py         # Loading, splitting, embeddings
+	prompt.py         # System prompt template
+templates/chat.html # Front-end chat UI
+static/style.css    # Basic styling
+Dockerfile          # Docker deploy (PORT 7860)
+DEPLOYMENT.md       # Extended deploy guide
+assets/banner.svg   # README banner
+```
+
+## ☁ Deploy (Hugging Face Spaces)
+1. Create Space `Monster10/medi-bot` (SDK: Docker, Hardware: CPU Basic)  
+2. Add Secrets under Settings → Variables & secrets: `OPENAI_API_KEY`, `PINECONE_API_KEY`  
+3. Add `HF_TOKEN` (write scope) as GitHub repo secret → triggers sync workflow  
+4. Push to `main` → Action builds filtered bundle → Space rebuilds  
+
+Notes:
+- Excludes large files (`data/`, PDFs) from sync to bypass 10 MiB limit.
+- Run ingestion locally only (vectors must exist before queries).
+
+## 🧩 Configuration
+| Key | Default | File |
+|-----|---------|------|
+| Pinecone Index | `medical-chatbot` | `store_index.py`, `app.py` |
+| Embedding Model | `all-MiniLM-L6-v2` | `helper.py` |
+| Chat Model | `gpt-4o` | `app.py` |
+| PORT | `7860` (Spaces) | `Dockerfile`, `app.py` |
+
+## Configuration
+- Index name: `medical-chatbot` (change in `app.py`/`store_index.py` if needed)
+- Model: `sentence-transformers/all-MiniLM-L6-v2` for embeddings; Chat model via OpenAI (`gpt-4o`)
+- Environment variables loaded via `.env` (`python-dotenv`)
+
+## 🛠 Troubleshooting
+- Memory errors on other free hosts → use Spaces (16 GB)
+- Push rejected (large file) → verify filters in workflow or use Git LFS
+- Blank answers → confirm Pinecone index populated + API keys valid
+- 500 errors → check env var names & ingestion order
+
+## 🖼 UI Preview
+Add a screenshot of the running chat UI here:  
+`assets/ui-preview.png`
+```md
+![Chat UI](assets/ui-preview.png)
+```
+Replace with your own once deployed.
+Actual screenshot example:
+
+![Medi-Bot Chat Screenshot](assets/ui-preview.png)
+
+<sub>If the image does not display, ensure the file is saved at `assets/ui-preview.png` in the repo. Commit with: `git add assets/ui-preview.png && git commit -m "Add UI screenshot" && git push origin main`.</sub>
+
+Additional example (symptoms query):
+
+![Brain Tumor Symptoms Chat](assets/ui-symptoms.png)
+
+<sub>Add second image file at `assets/ui-symptoms.png` (the screenshot you shared) and commit it similarly.</sub>
+
+## 📜 License
+MIT
 ```bash
 # run the following command to store embeddings to pinecone
 python store_index.py
@@ -60,82 +183,3 @@ open up localhost:
 ```
 
 
-### Techstack Used:
-
-- Python
-- LangChain
-- Flask
-- GPT
-- Pinecone
-
-
-
-# AWS-CICD-Deployment-with-Github-Actions
-
-## 1. Login to AWS console.
-
-## 2. Create IAM user for deployment
-
-	#with specific access
-
-	1. EC2 access : It is virtual machine
-
-	2. ECR: Elastic Container registry to save your docker image in aws
-
-
-	#Description: About the deployment
-
-	1. Build docker image of the source code
-
-	2. Push your docker image to ECR
-
-	3. Launch Your EC2 
-
-	4. Pull Your image from ECR in EC2
-
-	5. Lauch your docker image in EC2
-
-	#Policy:
-
-	1. AmazonEC2ContainerRegistryFullAccess
-
-	2. AmazonEC2FullAccess
-
-	
-## 3. Create ECR repo to store/save docker image
-    - Save the URI: 315865595366.dkr.ecr.us-east-1.amazonaws.com/medicalbot
-
-	
-## 4. Create EC2 machine (Ubuntu) 
-
-## 5. Open EC2 and Install docker in EC2 Machine:
-	
-	
-	#optinal
-
-	sudo apt-get update -y
-
-	sudo apt-get upgrade
-	
-	#required
-
-	curl -fsSL https://get.docker.com -o get-docker.sh
-
-	sudo sh get-docker.sh
-
-	sudo usermod -aG docker ubuntu
-
-	newgrp docker
-	
-# 6. Configure EC2 as self-hosted runner:
-    setting>actions>runner>new self hosted runner> choose os> then run command one by one
-
-
-# 7. Setup github secrets:
-
-   - AWS_ACCESS_KEY_ID
-   - AWS_SECRET_ACCESS_KEY
-   - AWS_DEFAULT_REGION
-   - ECR_REPO
-   - PINECONE_API_KEY
-   - OPENAI_API_KEY

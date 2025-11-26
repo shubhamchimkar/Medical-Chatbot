@@ -1,4 +1,4 @@
-from flask import Flask, render_template, jsonify, request
+from flask import Flask, render_template, jsonify, request, session
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI
@@ -6,11 +6,13 @@ from langchain.chains import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage, AIMessage
 from src.prompt import *
 import os
 
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")  # replace in production
 
 
 load_dotenv()
@@ -40,6 +42,7 @@ chatModel = ChatOpenAI(model="gpt-4o")
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
+        ("placeholder", "{chat_history}"),
         ("human", "{input}"),
     ]
 )
@@ -57,12 +60,23 @@ def index():
 
 @app.route("/get", methods=["GET", "POST"])
 def chat():
-    msg = request.form["msg"]
-    input = msg
-    print(input)
-    response = rag_chain.invoke({"input": msg})
-    print("Response : ", response["answer"])
-    return str(response["answer"])
+    msg = request.form["msg"].strip()
+    history = session.get("history", [])
+    # convert last 10 turns into LangChain message objects
+    limited = history[-10:]
+    lc_messages = []
+    for role, content in limited:
+        if role == "user":
+            lc_messages.append(HumanMessage(content=content))
+        elif role == "assistant":
+            lc_messages.append(AIMessage(content=content))
+    response = rag_chain.invoke({"input": msg, "chat_history": lc_messages})
+    answer = response.get("answer", "I don't know.")
+    # update history
+    history.append(("user", msg))
+    history.append(("assistant", answer))
+    session["history"] = history
+    return str(answer)
 
 
 
