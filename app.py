@@ -1,4 +1,5 @@
 from flask import Flask, render_template, jsonify, request, session
+from datetime import timedelta
 from src.helper import download_hugging_face_embeddings
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import ChatOpenAI
@@ -14,6 +15,11 @@ import os
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret-key")  # replace in production
+app.config.update(
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=False  # set True when enforcing HTTPS-only cookies
+)
+app.permanent_session_lifetime = timedelta(days=7)
 
 
 load_dotenv()
@@ -73,6 +79,7 @@ chatModel = ChatOpenAI(model="gpt-4o")
 
 @app.route("/")
 def index():
+    session.permanent = True
     return render_template('chat.html')
 
 
@@ -82,6 +89,7 @@ def chat():
     # Ensure pipeline is built lazily to avoid startup timeouts on Spaces
     if not _pipeline_ready:
         _build_pipeline()
+    session.permanent = True
     msg = request.form["msg"].strip()
     history = session.get("history", [])
     # Special intent: report first prompt of current session
